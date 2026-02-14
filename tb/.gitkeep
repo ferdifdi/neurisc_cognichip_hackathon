@@ -1,0 +1,11 @@
+# Testbench Directory
+
+This directory contains testbenches and verification environments for the NeuroRISC Accelerator.
+
+## Structure (Planned)
+
+- Unit testbenches for individual modules
+- Integration testbenches
+- UVM/SystemVerilog verification environments
+- Test vectors and reference models
+- Coverage and assertion monitors

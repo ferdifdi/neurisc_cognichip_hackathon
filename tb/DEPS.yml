@@ -1,0 +1,40 @@
+# =============================================================================
+# DEPS.yml - NeuroRISC SoC Verification Test Suite
+# =============================================================================
+
+# UVM Package (must be first for dependencies)
+neurisc_uvm_pkg:
+  deps:
+    - neurisc_pkg.sv
+
+# Unit Test: MAC Unit (Simple testbench)
+test_mac_unit:
+  deps:
+    - ../rtl/mac_unit.sv
+    - tb_mac_unit.sv
+  top: tb_mac_unit
+
+# Unit Test: MAC Unit (UVM version)
+test_mac_unit_uvm:
+  deps:
+    - ../rtl/mac_unit.sv
+    - neurisc_pkg.sv
+    - tb_mac_unit_uvm.sv
+  top: tb_mac_unit_uvm
+
+# Comprehensive SoC Integration Test
+test_neurisc_soc_comprehensive:
+  deps:
+    - ../rtl/mac_unit.sv
+    - ../rtl/systolic_array.sv
+    - ../rtl/activation_unit.sv
+    - ../rtl/weight_buffer.sv
+    - ../rtl/activation_buffer.sv
+    - ../rtl/dma_controller.sv
+    - ../rtl/custom_instruction_decoder.sv
+    - ../rtl/neurisc_soc.sv
+    - neurisc_pkg.sv
+    - tb_neurisc_soc_comprehensive.sv
+  top: tb_neurisc_soc_comprehensive
+  defines:
+    UVM_NO_DPI: 1
