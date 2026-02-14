@@ -1,0 +1,12 @@
+# Software Directory
+
+This directory contains firmware, drivers, and software libraries for the NeuroRISC Accelerator.
+
+## Structure (Planned)
+
+- Device drivers
+- Runtime libraries
+- API implementations
+- Example applications
+- Build system and makefiles
+- Testing utilities
