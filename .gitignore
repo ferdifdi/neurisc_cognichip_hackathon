@@ -1,0 +1,65 @@
+# Simulation files
+*.vcd
+*.fst
+*.fsdb
+*.log
+*.wlf
+*.vstf
+*.vvp
+simv*
+csrc/
+*.daidir/
+work/
+transcript
+*.ucdb
+.cogni/
+
+# Synthesis outputs
+*.syn
+*.v.gz
+*.svf
+*.pvl
+*.mr
+*.mapped
+*.sdc
+*.sdf
+reports/
+results/
+*.rpt
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.exe
+*.out
+obj/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# Editor and IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+
+# OS
+Thumbs.db
+.directory
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
