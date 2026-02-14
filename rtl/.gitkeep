@@ -1,0 +1,11 @@
+# RTL Directory
+
+This directory contains SystemVerilog hardware design files for the NeuroRISC Accelerator.
+
+## Structure (Planned)
+
+- Core NPU modules
+- Memory controllers
+- Interface adapters
+- Top-level integration
+- Package definitions
