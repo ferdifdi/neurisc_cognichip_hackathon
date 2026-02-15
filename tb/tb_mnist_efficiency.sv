@@ -2,8 +2,8 @@
 // Testbench: tb_mnist_efficiency
 // Description: MNIST Inference Efficiency Proof for NeuroRISC Accelerator
 //
-// Demonstrates >100x speedup over ARM Cortex-M7 through:
-//   1. 32x32 systolic array (1024 MACs vs 64 in baseline)
+// Demonstrates 126x speedup over ARM Cortex-M7 through:
+//   1. 32x32 systolic array (1024 MACs)
 //   2. Back-to-back K-tile accumulation (no restart between K-tiles)
 //   3. Double-buffered data loading (overlap load with compute)
 //
@@ -43,7 +43,7 @@ module tb_mnist_efficiency;
     );
 
     // =========================================================================
-    // 32x32 Systolic Array Instance (high-performance configuration)
+    // 32x32 Systolic Array Instance
     // =========================================================================
     localparam int SA_SIZE = 32;
 
@@ -65,28 +65,6 @@ module tb_mnist_efficiency;
         .result      (sa_result),
         .done        (sa_done),
         .cycle_count (sa_cycle_count)
-    );
-
-    // =========================================================================
-    // 8x8 Systolic Array Instance (baseline for comparison)
-    // =========================================================================
-    logic        sa8_start;
-    logic signed [7:0]  sa8_weight_in [0:7];
-    logic signed [7:0]  sa8_input_in  [0:7];
-    logic signed [19:0] sa8_result    [0:7][0:7];
-    logic        sa8_done;
-    logic [7:0]  sa8_cycle_count;
-
-    systolic_array #(.SIZE(8)) sa8_dut (
-        .clock       (clock),
-        .reset       (reset),
-        .start       (sa8_start),
-        .accumulate  (1'b0),
-        .weight_in   (sa8_weight_in),
-        .input_in    (sa8_input_in),
-        .result      (sa8_result),
-        .done        (sa8_done),
-        .cycle_count (sa8_cycle_count)
     );
 
     // =========================================================================
@@ -119,17 +97,11 @@ module tb_mnist_efficiency;
     localparam int HIDDEN_SIZE  = 128;
     localparam int OUTPUT_SIZE  = 10;
 
-    // Tile counts for 32x32 systolic array (optimized)
-    localparam int L1_K_TILES_OPT = 25;   // ceil(784/32)
-    localparam int L1_N_TILES_OPT = 4;    // ceil(128/32)
-    localparam int L2_K_TILES_OPT = 4;    // ceil(128/32)
-    localparam int L2_N_TILES_OPT = 1;    // ceil(10/32)
-
-    // Tile counts for 8x8 systolic array (baseline)
-    localparam int L1_K_TILES_8 = 98;
-    localparam int L1_N_TILES_8 = 16;
-    localparam int L2_K_TILES_8 = 16;
-    localparam int L2_N_TILES_8 = 2;
+    // Tile counts for 32x32 systolic array
+    localparam int L1_K_TILES = 25;   // ceil(784/32)
+    localparam int L1_N_TILES = 4;    // ceil(128/32)
+    localparam int L2_K_TILES = 4;    // ceil(128/32)
+    localparam int L2_N_TILES = 1;    // ceil(10/32)
 
     // =========================================================================
     // MAC-level tasks
@@ -164,8 +136,7 @@ module tb_mnist_efficiency;
     integer cycles;
     integer i, j, k, t;
 
-    integer sa_opt_measured_cycles;
-    integer sa8_measured_cycles;
+    integer sa_measured_cycles;
 
     // =========================================================================
     // Main Test Sequence
@@ -187,16 +158,11 @@ module tb_mnist_efficiency;
         mac_input_in = 0;
         sa_start = 0;
         sa_accumulate = 0;
-        sa8_start = 0;
         act_func_select = 2'b00;
         act_data_in = 0;
         for (i = 0; i < SA_SIZE; i = i + 1) begin
             sa_weight_in[i] = 0;
             sa_input_in[i]  = 0;
-        end
-        for (i = 0; i < 8; i = i + 1) begin
-            sa8_weight_in[i] = 0;
-            sa8_input_in[i]  = 0;
         end
 
         total_errors = 0;
@@ -369,7 +335,7 @@ module tb_mnist_efficiency;
         else begin $display("    FAIL: Tanh(0) = %0d", $signed(act_data_out)); total_errors = total_errors + 1; end
 
         // =================================================================
-        // PHASE 3: Systolic Array Cycle Measurement (32x32 vs 8x8)
+        // PHASE 3: Systolic Array Cycle Measurement
         // =================================================================
         $display("");
         $display("----------------------------------------------------------------");
@@ -377,43 +343,12 @@ module tb_mnist_efficiency;
         $display("----------------------------------------------------------------");
         $display("");
 
-        // --- Measure 8x8 baseline ---
-        $display("  Measuring 8x8 systolic array (baseline)...");
-        begin : sa8_timing
+        // --- Measure 32x32 array ---
+        $display("  Measuring 32x32 systolic array...");
+        begin : sa_timing
             integer t_start, t_end;
-            integer sa8_total;
-            sa8_total = 0;
-
-            for (t = 0; t < 3; t = t + 1) begin
-                @(negedge clock);
-                t_start = $time;
-                sa8_start = 1;
-                for (i = 0; i < 8; i = i + 1) begin
-                    sa8_weight_in[i] = (t * 8 + i + 1);
-                    sa8_input_in[i]  = (t * 8 + i + 10);
-                end
-                @(posedge clock);
-                sa8_start = 0;
-                wait(sa8_done == 1);
-                @(posedge clock);
-                t_end = $time;
-                cycles = (t_end - t_start) / 10;
-                sa8_total = sa8_total + cycles;
-                $display("    8x8 Run %0d: %0d cycles", t+1, cycles);
-                repeat(3) @(posedge clock);
-            end
-            sa8_measured_cycles = sa8_total / 3;
-            $display("    8x8 Average: %0d cycles/tile", sa8_measured_cycles);
-        end
-
-        $display("");
-
-        // --- Measure 32x32 optimized ---
-        $display("  Measuring 32x32 systolic array (optimized)...");
-        begin : sa_opt_timing
-            integer t_start, t_end;
-            integer sa_opt_total;
-            sa_opt_total = 0;
+            integer sa_total;
+            sa_total = 0;
 
             for (t = 0; t < 3; t = t + 1) begin
                 @(negedge clock);
@@ -430,12 +365,12 @@ module tb_mnist_efficiency;
                 @(posedge clock);
                 t_end = $time;
                 cycles = (t_end - t_start) / 10;
-                sa_opt_total = sa_opt_total + cycles;
+                sa_total = sa_total + cycles;
                 $display("    32x32 Run %0d: %0d cycles (cycle_count=%0d)", t+1, cycles, sa_cycle_count);
                 repeat(3) @(posedge clock);
             end
-            sa_opt_measured_cycles = sa_opt_total / 3;
-            $display("    32x32 Average: %0d cycles/tile", sa_opt_measured_cycles);
+            sa_measured_cycles = sa_total / 3;
+            $display("    32x32 Average: %0d cycles/tile", sa_measured_cycles);
         end
 
         // --- Measure back-to-back accumulation (3 K-tiles without restart) ---
@@ -551,50 +486,34 @@ module tb_mnist_efficiency;
         begin : report
             integer total_mac_ops;
 
-            // --- 8x8 BASELINE ---
-            integer base_data_overhead;
-            integer base_l1_cycles, base_l2_cycles, base_act, base_total;
-            integer base_time_ns, base_throughput, base_energy_nj, base_speedup;
-
-            // --- 32x32 OPTIMIZED ---
-            integer opt_k_feed_cycles;
-            integer opt_l1_cycles, opt_l2_cycles, opt_act, opt_total;
-            integer opt_time_ns, opt_throughput, opt_energy_nj, opt_speedup;
-            integer opt_energy_ratio;
+            // --- 32x32 CALCULATION ---
+            integer k_feed_cycles;
+            integer l1_cycles, l2_cycles, act_cyc, total_cyc;
+            integer time_ns, throughput, energy_nj, speedup;
+            integer energy_ratio;
 
             total_mac_ops = INPUT_SIZE * HIDDEN_SIZE + HIDDEN_SIZE * OUTPUT_SIZE;
 
-            // --- 8x8 BASELINE CALCULATION ---
-            base_data_overhead = 3;
-            base_l1_cycles = L1_N_TILES_8 * L1_K_TILES_8 * (sa8_measured_cycles + base_data_overhead);
-            base_l2_cycles = L2_N_TILES_8 * L2_K_TILES_8 * (sa8_measured_cycles + base_data_overhead);
-            base_act = HIDDEN_SIZE + OUTPUT_SIZE;
-            base_total = base_l1_cycles + base_l2_cycles + base_act;
-            base_time_ns = base_total;
-            base_throughput = 1000000000 / base_total;
-            base_energy_nj = base_total * 390 / 1000;
-            base_speedup = 1280000 / base_total;
-
-            // --- 32x32 OPTIMIZED CALCULATION ---
+            // --- 32x32 CALCULATION ---
             // With double-buffered data loading, load time is hidden behind
             // compute time (compute >> load), so no data overhead per tile.
-            // Each tile takes sa_opt_measured_cycles.
+            // Each tile takes sa_measured_cycles.
 
-            opt_k_feed_cycles = sa_opt_measured_cycles;
+            k_feed_cycles = sa_measured_cycles;
 
             // Layer 1: 4 output groups x 25 K-tiles
-            opt_l1_cycles = L1_N_TILES_OPT * L1_K_TILES_OPT * opt_k_feed_cycles;
+            l1_cycles = L1_N_TILES * L1_K_TILES * k_feed_cycles;
 
             // Layer 2: 1 output group x 4 K-tiles
-            opt_l2_cycles = L2_N_TILES_OPT * L2_K_TILES_OPT * opt_k_feed_cycles;
+            l2_cycles = L2_N_TILES * L2_K_TILES * k_feed_cycles;
 
-            opt_act = HIDDEN_SIZE + OUTPUT_SIZE;
-            opt_total = opt_l1_cycles + opt_l2_cycles + opt_act;
-            opt_time_ns = opt_total;
-            opt_throughput = 1000000000 / opt_total;
-            opt_energy_nj = opt_total * 650 / 1000;  // 650mW for 1024-MAC array
-            opt_speedup = 1280000 / opt_total;
-            opt_energy_ratio = 57600 / (opt_energy_nj > 0 ? opt_energy_nj : 1);
+            act_cyc = HIDDEN_SIZE + OUTPUT_SIZE;
+            total_cyc = l1_cycles + l2_cycles + act_cyc;
+            time_ns = total_cyc;
+            throughput = 1000000000 / total_cyc;
+            energy_nj = total_cyc * 650 / 1000;  // 650mW for 1024-MAC array
+            speedup = 1280000 / total_cyc;
+            energy_ratio = 57600 / (energy_nj > 0 ? energy_nj : 1);
 
             $display("  +-------------------------------------------------------------+");
             $display("  |           MNIST NETWORK ARCHITECTURE                         |");
@@ -607,60 +526,37 @@ module tb_mnist_efficiency;
             $display("  +-------------------------------------------------------------+");
 
             $display("");
-            $display("  +=====================================================================+");
-            $display("  |   ARCHITECTURAL COMPARISON: 8x8 (baseline) vs 32x32 (optimized)     |");
-            $display("  +=====================================================================+");
-            $display("  |                                                                     |");
-            $display("  |  Parameter               8x8 Baseline      32x32 Optimized          |");
-            $display("  |  ----------------------  ----------------  -------------------       |");
-            $display("  |  Array Size              8x8 (64 MACs)     32x32 (1024 MACs)         |");
-            $display("  |  Measured Cycles/Tile    %2d cycles         %2d cycles               |", sa8_measured_cycles, sa_opt_measured_cycles);
-            $display("  |  MACs per Tile           64                1024                      |");
-            $display("  |  Total Tiles (L1)        %4d              %4d                       |", L1_N_TILES_8 * L1_K_TILES_8, L1_N_TILES_OPT * L1_K_TILES_OPT);
-            $display("  |  Total Tiles (L2)        %4d              %4d                        |", L2_N_TILES_8 * L2_K_TILES_8, L2_N_TILES_OPT * L2_K_TILES_OPT);
-            $display("  |  K-Tile Pipelining       No (restart)      Yes (accumulate)          |");
-            $display("  |  Data Load Overlap       No (+3 cyc)       Yes (double-buffered)     |");
-            $display("  +---------------------------------------------------------------------+");
-
-            $display("");
             $display("  +-------------------------------------------------------------+");
-            $display("  |           8x8 BASELINE CYCLE BREAKDOWN                       |");
+            $display("  |           32x32 CYCLE BREAKDOWN                              |");
             $display("  +-------------------------------------------------------------+");
-            $display("  |  Layer 1: %8d cyc  (%0d tiles x %0d cyc/tile)       |",
-                     base_l1_cycles, L1_N_TILES_8 * L1_K_TILES_8, sa8_measured_cycles + base_data_overhead);
-            $display("  |  Layer 2: %8d cyc  (%0d tiles x %0d cyc/tile)          |",
-                     base_l2_cycles, L2_N_TILES_8 * L2_K_TILES_8, sa8_measured_cycles + base_data_overhead);
-            $display("  |  Activation:  %5d cyc                                    |", base_act);
-            $display("  |  TOTAL:   %8d cycles  ->  %3d.%03d us @ 1GHz            |",
-                     base_total, base_time_ns / 1000, base_time_ns % 1000);
-            $display("  |  Speedup vs ARM: %0dx                                       |", base_speedup);
-            $display("  +-------------------------------------------------------------+");
-
-            $display("");
-            $display("  +-------------------------------------------------------------+");
-            $display("  |           32x32 OPTIMIZED CYCLE BREAKDOWN                    |");
+            $display("  |  Array Size:  32x32 (1024 MACs)                              |");
+            $display("  |  Measured Cycles/Tile:    %2d cycles                         |", sa_measured_cycles);
+            $display("  |  Total Tiles (L1):        %4d                                |", L1_N_TILES * L1_K_TILES);
+            $display("  |  Total Tiles (L2):        %4d                                 |", L2_N_TILES * L2_K_TILES);
+            $display("  |  K-Tile Pipelining:       Yes (accumulate mode)              |");
+            $display("  |  Data Load Overlap:       Yes (double-buffered)              |");
             $display("  +-------------------------------------------------------------+");
             $display("  |  Layer 1: %8d cyc  (%0d N-groups x %0d K-tiles x %0d cyc) |",
-                     opt_l1_cycles, L1_N_TILES_OPT, L1_K_TILES_OPT, opt_k_feed_cycles);
+                     l1_cycles, L1_N_TILES, L1_K_TILES, k_feed_cycles);
             $display("  |  Layer 2: %8d cyc  (%0d N-groups x %0d K-tiles x %0d cyc)  |",
-                     opt_l2_cycles, L2_N_TILES_OPT, L2_K_TILES_OPT, opt_k_feed_cycles);
-            $display("  |  Activation:  %5d cyc                                    |", opt_act);
+                     l2_cycles, L2_N_TILES, L2_K_TILES, k_feed_cycles);
+            $display("  |  Activation:  %5d cyc                                    |", act_cyc);
             $display("  |  TOTAL:   %8d cycles  ->  %3d.%03d us @ 1GHz            |",
-                     opt_total, opt_time_ns / 1000, opt_time_ns % 1000);
-            $display("  |  Speedup vs ARM: %0dx                                      |", opt_speedup);
+                     total_cyc, time_ns / 1000, time_ns % 1000);
+            $display("  |  Speedup vs ARM: %0dx                                      |", speedup);
             $display("  +-------------------------------------------------------------+");
 
             $display("");
             $display("  +-------------------------------------------------------------+");
-            $display("  |           PERFORMANCE @ 1 GHz (32x32 Optimized)              |");
+            $display("  |           PERFORMANCE @ 1 GHz (32x32)                        |");
             $display("  +-------------------------------------------------------------+");
             $display("  |  Inference Latency:    %3d.%03d us                            |",
-                     opt_time_ns / 1000, opt_time_ns % 1000);
-            $display("  |  Throughput:           %6d inferences/sec                 |", opt_throughput);
+                     time_ns / 1000, time_ns % 1000);
+            $display("  |  Throughput:           %6d inferences/sec                 |", throughput);
             $display("  |  Peak Compute:        2048.0 GOPS (1024 MACs x 2 x 1GHz)    |");
             $display("  |  MAC Utilization:      %0d.%0d%%                               |",
-                     (total_mac_ops * 100) / (opt_total * 1024) ,
-                     ((total_mac_ops * 1000) / (opt_total * 1024)) % 10);
+                     (total_mac_ops * 100) / (total_cyc * 1024) ,
+                     ((total_mac_ops * 1000) / (total_cyc * 1024)) % 10);
             $display("  +-------------------------------------------------------------+");
 
             $display("");
@@ -691,7 +587,7 @@ module tb_mnist_efficiency;
             $display("  +-------------------------------------------------------------+");
             $display("  |  Power @ 1GHz:            650.0 mW  (1024 MACs)              |");
             $display("  |  Energy/Inference:     %4d.%03d uJ                           |",
-                     opt_energy_nj / 1000, opt_energy_nj % 1000);
+                     energy_nj / 1000, energy_nj % 1000);
             $display("  |  Peak Efficiency:      3150.8 GOPS/W                         |");
             $display("  |  Area:                 1.58 mm^2 (28nm CMOS)                 |");
             $display("  +-------------------------------------------------------------+");
@@ -703,11 +599,11 @@ module tb_mnist_efficiency;
             $display("  |  Metric            ARM Cortex-M7  NeuroRISC-32  Improvement          |");
             $display("  |  -------           -------------  -----------   -----------          |");
             $display("  |  Inference Time    1.280 ms       %4d.%03d us    %4dx faster          |",
-                     opt_time_ns / 1000, opt_time_ns % 1000, opt_speedup);
+                     time_ns / 1000, time_ns % 1000, speedup);
             $display("  |  Energy/Inference  57.60 uJ       %4d.%03d uJ    %3dx less            |",
-                     opt_energy_nj / 1000, opt_energy_nj % 1000, opt_energy_ratio);
+                     energy_nj / 1000, energy_nj % 1000, energy_ratio);
             $display("  |  Throughput        781 inf/s      %6d inf/s  %3dx higher          |",
-                     opt_throughput, opt_throughput / 781);
+                     throughput, throughput / 781);
             $display("  |  Peak Efficiency   8.9 GOPS/W     3150.8 GOPS/W 353.9x              |");
             $display("  +=====================================================================+");
 
@@ -715,30 +611,12 @@ module tb_mnist_efficiency;
             $display("  +-------------------------------------------------------------+");
             $display("  |           KEY OPTIMIZATIONS APPLIED                          |");
             $display("  +-------------------------------------------------------------+");
-            $display("  |  1. 32x32 systolic array (1024 MACs, 16x parallel compute)   |");
+            $display("  |  1. 32x32 systolic array (1024 MACs)                         |");
             $display("  |  2. Back-to-back K-tile accumulation (no state machine       |");
             $display("  |     restart between K-dimension tiles)                       |");
             $display("  |  3. Double-buffered data loading (load overlaps compute,     |");
             $display("  |     zero data-transfer overhead)                             |");
             $display("  |  4. Output-stationary dataflow (minimizes result movement)   |");
-            $display("  +-------------------------------------------------------------+");
-
-            $display("");
-            $display("  +-------------------------------------------------------------+");
-            $display("  |           IMPROVEMENT vs 8x8 BASELINE                        |");
-            $display("  +-------------------------------------------------------------+");
-            $display("  |  Total Tiles: %4d -> %4d  (%0d.%0dx reduction)              |",
-                     L1_N_TILES_8*L1_K_TILES_8 + L2_N_TILES_8*L2_K_TILES_8,
-                     L1_N_TILES_OPT*L1_K_TILES_OPT + L2_N_TILES_OPT*L2_K_TILES_OPT,
-                     (L1_N_TILES_8*L1_K_TILES_8 + L2_N_TILES_8*L2_K_TILES_8) / (L1_N_TILES_OPT*L1_K_TILES_OPT + L2_N_TILES_OPT*L2_K_TILES_OPT),
-                     (((L1_N_TILES_8*L1_K_TILES_8 + L2_N_TILES_8*L2_K_TILES_8) * 10) / (L1_N_TILES_OPT*L1_K_TILES_OPT + L2_N_TILES_OPT*L2_K_TILES_OPT)) % 10);
-            $display("  |  Memory Transactions: 15.3x reduction (tile count)           |");
-            $display("  |  Cycles: %8d -> %8d  (%0d.%0dx reduction)             |",
-                     base_total, opt_total,
-                     base_total / opt_total, ((base_total * 10) / opt_total) % 10);
-            $display("  |  ARM Speedup: %0dx -> %0dx                                  |",
-                     base_speedup, opt_speedup);
-            $display("  |  MACs/Array:  64 -> 1024 (16x)                               |");
             $display("  +-------------------------------------------------------------+");
         end
 
@@ -755,8 +633,7 @@ module tb_mnist_efficiency;
             $display("   [OK] MAC unit: INT8 dot products, saturation, sparsity verified");
             $display("   [OK] Full 784-element neuron accumulation matches SW reference");
             $display("   [OK] ReLU, Sigmoid, Tanh activation functions verified");
-            $display("   [OK] 8x8 systolic array: %0d cycles/tile (baseline)", sa8_measured_cycles);
-            $display("   [OK] 32x32 systolic array: %0d cycles/tile (optimized)", sa_opt_measured_cycles);
+            $display("   [OK] 32x32 systolic array: %0d cycles/tile", sa_measured_cycles);
             $display("   [OK] Back-to-back K-tile accumulation: functional");
             $display("   [OK] 126x faster than ARM Cortex-M7 software baseline");
             $display("");
@@ -769,6 +646,75 @@ module tb_mnist_efficiency;
             $display("================================================================");
             $display("");
             $display("TEST FAILED");
+        end
+
+        // =================================================================
+        // Write JSON Results
+        // =================================================================
+        begin : write_json
+            integer json_file;
+            integer json_total_mac_ops;
+            integer json_k_feed_cycles;
+            integer json_l1_cycles, json_l2_cycles, json_act_cyc, json_total_cyc;
+            integer json_time_ns, json_throughput, json_energy_nj, json_speedup;
+            
+            json_total_mac_ops = INPUT_SIZE * HIDDEN_SIZE + HIDDEN_SIZE * OUTPUT_SIZE;
+            json_k_feed_cycles = sa_measured_cycles;
+            json_l1_cycles = L1_N_TILES * L1_K_TILES * json_k_feed_cycles;
+            json_l2_cycles = L2_N_TILES * L2_K_TILES * json_k_feed_cycles;
+            json_act_cyc = HIDDEN_SIZE + OUTPUT_SIZE;
+            json_total_cyc = json_l1_cycles + json_l2_cycles + json_act_cyc;
+            json_time_ns = json_total_cyc;
+            json_throughput = 1000000000 / json_total_cyc;
+            json_energy_nj = json_total_cyc * 650 / 1000;
+            json_speedup = 1280000 / json_total_cyc;
+            
+            json_file = $fopen("simulation_results/eda_results.json", "w");
+            if (json_file) begin
+                $fdisplay(json_file, "{");
+                $fdisplay(json_file, "  \"testbench\": \"tb_mnist_efficiency\",");
+                $fdisplay(json_file, "  \"status\": \"%s\",", (total_errors == 0) ? "PASS" : "FAIL");
+                $fdisplay(json_file, "  \"total_tests\": %0d,", total_tests);
+                $fdisplay(json_file, "  \"total_errors\": %0d,", total_errors);
+                $fdisplay(json_file, "  \"array_configuration\": {");
+                $fdisplay(json_file, "    \"size\": \"32x32\",");
+                $fdisplay(json_file, "    \"mac_units\": 1024,");
+                $fdisplay(json_file, "    \"measured_cycles_per_tile\": %0d", sa_measured_cycles);
+                $fdisplay(json_file, "  },");
+                $fdisplay(json_file, "  \"mnist_performance\": {");
+                $fdisplay(json_file, "    \"total_mac_operations\": %0d,", json_total_mac_ops);
+                $fdisplay(json_file, "    \"total_cycles\": %0d,", json_total_cyc);
+                $fdisplay(json_file, "    \"layer1_cycles\": %0d,", json_l1_cycles);
+                $fdisplay(json_file, "    \"layer2_cycles\": %0d,", json_l2_cycles);
+                $fdisplay(json_file, "    \"activation_cycles\": %0d,", json_act_cyc);
+                $fdisplay(json_file, "    \"inference_latency_ns\": %0d,", json_time_ns);
+                $fdisplay(json_file, "    \"inference_latency_us\": %0d.%03d,", json_time_ns / 1000, json_time_ns % 1000);
+                $fdisplay(json_file, "    \"throughput_inferences_per_sec\": %0d,", json_throughput);
+                $fdisplay(json_file, "    \"energy_per_inference_nj\": %0d,", json_energy_nj);
+                $fdisplay(json_file, "    \"energy_per_inference_uj\": %0d.%03d,", json_energy_nj / 1000, json_energy_nj % 1000);
+                $fdisplay(json_file, "    \"speedup_vs_arm_cortex_m7\": \"%0dx\"", json_speedup);
+                $fdisplay(json_file, "  },");
+                $fdisplay(json_file, "  \"arm_cortex_m7_baseline\": {");
+                $fdisplay(json_file, "    \"inference_time_ms\": 1.280,");
+                $fdisplay(json_file, "    \"energy_per_inference_uj\": 57.60,");
+                $fdisplay(json_file, "    \"throughput_inferences_per_sec\": 781,");
+                $fdisplay(json_file, "    \"clock_speed_mhz\": 200");
+                $fdisplay(json_file, "  },");
+                $fdisplay(json_file, "  \"specifications\": {");
+                $fdisplay(json_file, "    \"clock_frequency_ghz\": 1.0,");
+                $fdisplay(json_file, "    \"peak_gops\": 2048,");
+                $fdisplay(json_file, "    \"power_mw\": 650.0,");
+                $fdisplay(json_file, "    \"area_mm2\": 1.58,");
+                $fdisplay(json_file, "    \"technology_nm\": 28,");
+                $fdisplay(json_file, "    \"gops_per_watt\": 3150.8");
+                $fdisplay(json_file, "  }");
+                $fdisplay(json_file, "}");
+                $fclose(json_file);
+                $display("");
+                $display("Results written to simulation_results/eda_results.json");
+            end else begin
+                $display("ERROR: Could not create simulation_results/eda_results.json");
+            end
         end
 
         $display("");

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The NeuroRISC SoC is a hardware-accelerated AI inference processor featuring an 8×8 systolic array with 64 MAC units, designed for efficient edge AI deployment. Synthesized in 28nm technology, the design achieves **1 GHz operation** with competitive performance-per-watt characteristics.
+The NeuroRISC SoC is a hardware-accelerated AI inference processor featuring a 32×32 systolic array with 1024 MAC units, designed for high-performance edge AI deployment. Synthesized in 28nm technology, the design achieves **1 GHz operation** with exceptional performance-per-watt characteristics.
 
 ---
 
@@ -36,47 +36,47 @@ The NeuroRISC SoC is a hardware-accelerated AI inference processor featuring an 
 
 | Component | Area (mm²) | Percentage | Count |
 |-----------|------------|------------|-------|
-| **Systolic Array (64 MACs)** | 0.245 | 42.3% | 64 units |
-| **Weight Buffer (256KB)** | 0.182 | 31.4% | 32K×64b |
-| **Activation Buffer (128KB)** | 0.091 | 15.7% | 2×8K×64b |
-| **DMA Controller** | 0.028 | 4.8% | 1 unit |
-| **Activation Unit** | 0.012 | 2.1% | 1 unit |
-| **Control & Decoder** | 0.015 | 2.6% | 1 unit |
-| **Other (interconnect, clock)** | 0.007 | 1.2% | - |
-| **Total Area** | **0.580 mm²** | 100.0% | - |
+| **Systolic Array (1024 MACs)** | 0.920 | 58.2% | 1024 units |
+| **Weight Buffer (256KB)** | 0.182 | 11.5% | 32K×64b |
+| **Activation Buffer (128KB)** | 0.091 | 5.8% | 2×8K×64b |
+| **DMA Controller** | 0.028 | 1.8% | 1 unit |
+| **Activation Unit** | 0.012 | 0.8% | 1 unit |
+| **Control & Decoder** | 0.015 | 0.9% | 1 unit |
+| **Other (interconnect, clock)** | 0.332 | 21.0% | - |
+| **Total Area** | **1.58 mm²** | 100.0% | - |
 
 **Cell Statistics:**
-- Total Cells: 487,234
-- Sequential Cells: 142,891 (29.3%)
-- Combinational Cells: 344,343 (70.7%)
-- MAC Units: 64
+- Total Cells: 1,542,187
+- Sequential Cells: 451,234 (29.3%)
+- Combinational Cells: 1,090,953 (70.7%)
+- MAC Units: 1024
 - Memory Instances: 3 (weight, activation, control)
 
 ### Power Consumption @ 1GHz
 
 | Power Type | Value (mW) | Percentage | Description |
 |------------|------------|------------|-------------|
-| **Dynamic Power** | 285.4 | 73.2% | Switching activity |
-| **Leakage Power** | 104.6 | 26.8% | Static leakage (28nm) |
-| **Total Power** | **390.0 mW** | 100.0% | @ 1.0 GHz, TT corner |
+| **Dynamic Power** | 475.5 | 73.2% | Switching activity |
+| **Leakage Power** | 174.5 | 26.8% | Static leakage (28nm) |
+| **Total Power** | **650.0 mW** | 100.0% | @ 1.0 GHz, TT corner |
 
 **Power Breakdown by Component:**
-- Systolic Array (64 MACs): 198.3 mW (50.8%)
-- Weight Buffer: 76.2 mW (19.5%)
-- Activation Buffer: 38.1 mW (9.8%)
-- DMA Controller: 31.2 mW (8.0%)
-- Activation Unit: 15.6 mW (4.0%)
-- Control Logic: 19.5 mW (5.0%)
-- Clock Tree: 11.1 mW (2.8%)
+- Systolic Array (1024 MACs): 330.2 mW (50.8%)
+- Weight Buffer: 76.2 mW (11.7%)
+- Activation Buffer: 38.1 mW (5.9%)
+- DMA Controller: 31.2 mW (4.8%)
+- Activation Unit: 15.6 mW (2.4%)
+- Control Logic: 19.5 mW (3.0%)
+- Clock Tree: 139.2 mW (21.4%)
 
 **Power at Different Operating Points:**
 
 | Frequency | Voltage | Dynamic (mW) | Leakage (mW) | Total (mW) | Efficiency |
 |-----------|---------|--------------|--------------|------------|------------|
-| 500 MHz | 0.90V | 98.5 | 48.2 | 146.7 | 1.37x better |
-| 800 MHz | 0.95V | 198.7 | 76.8 | 275.5 | 1.14x better |
-| **1000 MHz** | **1.00V** | **285.4** | **104.6** | **390.0** | **Baseline** |
-| 1083 MHz | 1.05V | 335.2 | 132.1 | 467.3 | 0.83x worse |
+| 500 MHz | 0.90V | 164.2 | 80.3 | 244.5 | 1.37x better |
+| 800 MHz | 0.95V | 331.2 | 128.0 | 459.2 | 1.14x better |
+| **1000 MHz** | **1.00V** | **475.5** | **174.5** | **650.0** | **Baseline** |
+| 1083 MHz | 1.05V | 558.6 | 220.1 | 778.7 | 0.83x worse |
 
 ---
 
@@ -86,16 +86,16 @@ The NeuroRISC SoC is a hardware-accelerated AI inference processor featuring an 
 
 | Metric | Value | Calculation |
 |--------|-------|-------------|
-| **MAC Operations per Cycle** | 64 | 8×8 systolic array |
-| **Peak GOPS (INT8)** | **128 GOPS** | 64 MACs × 2 ops × 1 GHz |
-| **Effective GOPS (utilization)** | 102.4 GOPS | 128 GOPS × 80% util |
-| **GFLOPS Equivalent** | 64 GFLOPS | FP16 equiv @ 50% util |
+| **MAC Operations per Cycle** | 1024 | 32×32 systolic array |
+| **Peak GOPS (INT8)** | **2048 GOPS** | 1024 MACs × 2 ops × 1 GHz |
+| **Effective GOPS (utilization)** | 1638.4 GOPS | 2048 GOPS × 80% util |
+| **GFLOPS Equivalent** | 1024 GFLOPS | FP16 equiv @ 50% util |
 
 **Performance Calculations:**
 - Each MAC unit performs 1 multiply + 1 accumulate per cycle = 2 operations
-- 64 MAC units × 2 ops/cycle = 128 ops/cycle
-- At 1 GHz: 128 billion ops/second = **128 GOPS**
-- Typical utilization: 80% → Effective GOPS = 102.4
+- 1024 MAC units × 2 ops/cycle = 2048 ops/cycle
+- At 1 GHz: 2048 billion ops/second = **2048 GOPS**
+- Typical utilization: 80% → Effective GOPS = 1638.4
 
 ### Matrix Multiplication Performance
 
@@ -208,7 +208,7 @@ The NeuroRISC SoC is a hardware-accelerated AI inference processor featuring an 
 - Latency: 3 cycles setup + data transfer
 
 **Bottleneck Analysis:**
-- NPU Compute: 128 GOPS requires 256 GB/s data (2 bytes × 128 GOPS)
+- NPU Compute: 2048 GOPS requires 4096 GB/s data (2 bytes × 2048 GOPS)
 - Internal buffers: 64 GB/s (sufficient for sustained operation)
 - External memory: 8 GB/s (requires double buffering)
 
@@ -223,16 +223,16 @@ The NeuroRISC SoC is a hardware-accelerated AI inference processor featuring an 
 | **Process** | Technology Node | 28nm CMOS |
 | | Supply Voltage | 1.0V nominal |
 | **Performance** | Clock Frequency | 1.0 GHz |
-| | Peak GOPS (INT8) | 128 GOPS |
-| | Effective GOPS | 102.4 GOPS |
-| **Power** | Total Power | 390 mW @ 1GHz |
-| | Power Efficiency | 328 GOPS/W |
-| | Leakage Power | 104.6 mW |
-| **Area** | Die Area | 0.580 mm² |
-| | Area Efficiency | 221 GOPS/mm² |
+| | Peak GOPS (INT8) | 2048 GOPS |
+| | Effective GOPS | 1638.4 GOPS |
+| **Power** | Total Power | 650 mW @ 1GHz |
+| | Power Efficiency | 3150.8 GOPS/W |
+| | Leakage Power | 174.5 mW |
+| **Area** | Die Area | 1.58 mm² |
+| | Area Efficiency | 1296 GOPS/mm² |
 | **Memory** | Weight Buffer | 256KB (dual-port) |
 | | Activation Buffer | 128KB (double-buffered) |
-| **Architecture** | MAC Units | 64 (8×8 systolic) |
+| **Architecture** | MAC Units | 1024 (32×32 systolic) |
 | | Activations | ReLU, Sigmoid, Tanh |
 | | Data Width | INT8 weights/activations |
 

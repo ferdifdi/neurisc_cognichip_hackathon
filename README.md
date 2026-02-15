@@ -4,7 +4,7 @@ An AI-driven RISC-V neural processing subsystem designed for efficient edge AI i
 
 ## Overview
 
-The NeuroRISC Accelerator is a hardware-software co-designed neural processing subsystem that extends RISC-V processors with specialized neural network acceleration capabilities. The design features a **parameterized systolic array** (up to 32×32 / 1024 MACs) with back-to-back K-tile accumulation for maximum throughput.
+The NeuroRISC Accelerator is a hardware-software co-designed neural processing subsystem that extends RISC-V processors with specialized neural network acceleration capabilities. The design features a **32×32 systolic array** (1024 MACs) with back-to-back K-tile accumulation for maximum throughput.
 
 ### Headline Results (MNIST, 32×32 Array @ 1 GHz)
 
@@ -18,7 +18,7 @@ The NeuroRISC Accelerator is a hardware-software co-designed neural processing s
 ## Key Features
 
 - **126x Faster MNIST Inference** vs ARM Cortex-M7 @ 200 MHz (verified in simulation)
-- **Parameterized Systolic Array**: Configurable SIZE (8×8, 16×16, 32×32) for area/performance tradeoffs
+- **32×32 Systolic Array**: 1024 MAC units for high-throughput inference
 - **Back-to-Back K-Tile Accumulation**: Accumulate mode eliminates state machine restarts between K-dimension tiles
 - **Double-Buffered Data Loading**: Load overlaps compute for zero data-transfer overhead
 - **Output-Stationary Dataflow**: Minimizes result movement for energy efficiency
@@ -60,7 +60,7 @@ The NeuroRISC Accelerator is a hardware-software co-designed neural processing s
 
 | Module | Description |
 |--------|-------------|
-| `systolic_array.sv` | Parameterized NxN MAC array (default 8, supports 16, 32) with accumulate mode |
+| `systolic_array.sv` | 32×32 MAC array (1024 MACs) with accumulate mode |
 | `mac_unit.sv` | INT8 multiply-accumulate with 20-bit saturating accumulator |
 | `activation_unit.sv` | Hardware ReLU, Sigmoid, Tanh activation functions |
 | `weight_buffer.sv` | 256 KB dual-port weight storage |
@@ -108,7 +108,7 @@ The testbench `tb/tb_mnist_efficiency.sv` provides a complete efficiency proof f
 1. **MAC Unit Correctness**: INT8 dot products, positive/negative saturation, sparsity handling
 2. **Activation Functions**: ReLU, Sigmoid, Tanh verified against reference
 3. **Full Neuron Computation**: 784-element dot product matches software reference model
-4. **Systolic Array Timing**: Measured cycle counts for 8×8 (24 cyc) and 32×32 (96 cyc) arrays
+4. **Systolic Array Timing**: Measured cycle counts for 32×32 (96 cyc) array
 5. **Back-to-Back Accumulation**: K-tile pipelining verified functional
 
 ### Cycle Breakdown (32×32 Array)
@@ -124,7 +124,7 @@ The testbench `tb/tb_mnist_efficiency.sv` provides a complete efficiency proof f
 
 | Optimization | Effect |
 |-------------|--------|
-| 32×32 systolic array (1024 MACs) | 16x more parallel compute than 8×8 |
+| 32×32 systolic array (1024 MACs) | High-parallelism compute engine |
 | Back-to-back K-tile accumulation | No state machine restart between K-tiles |
 | Double-buffered data loading | Zero data-transfer overhead |
 | Output-stationary dataflow | Minimized result data movement |
@@ -136,7 +136,6 @@ The testbench `tb/tb_mnist_efficiency.sv` provides a complete efficiency proof f
 | Technology | 28nm CMOS |
 | Target Frequency | 1 GHz |
 | Critical Path | 0.923 ns (77 ps slack) |
-| Area (8×8) | 0.580 mm² |
 | Area (32×32) | 1.58 mm² |
 | Power (32×32) | 650 mW |
 | Peak Compute (32×32) | 2,048 GOPS |

@@ -168,7 +168,7 @@ module neurisc_soc (
     // ==========================================================================
     // Module Instantiation - Systolic Array NPU
     // ==========================================================================
-    systolic_array #(.SIZE(8)) npu_inst (
+    systolic_array #(.SIZE(32)) npu_inst (
         .clock       (clock),
         .reset       (reset),
         .start       (npu_start),

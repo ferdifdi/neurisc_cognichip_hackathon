@@ -1,0 +1,38 @@
+{
+  "testbench": "tb_mnist_efficiency",
+  "status": "PASS",
+  "total_tests": 22,
+  "total_errors": 0,
+  "array_configuration": {
+    "size": "32x32",
+    "mac_units": 1024,
+    "measured_cycles_per_tile": 96
+  },
+  "mnist_performance": {
+    "total_mac_operations": 101632,
+    "total_cycles": 10122,
+    "layer1_cycles": 9600,
+    "layer2_cycles": 384,
+    "activation_cycles": 138,
+    "inference_latency_ns": 10122,
+    "inference_latency_us": 10.122,
+    "throughput_inferences_per_sec": 98794,
+    "energy_per_inference_nj": 6579,
+    "energy_per_inference_uj": 6.579,
+    "speedup_vs_arm_cortex_m7": "126x"
+  },
+  "arm_cortex_m7_baseline": {
+    "inference_time_ms": 1.280,
+    "energy_per_inference_uj": 57.60,
+    "throughput_inferences_per_sec": 781,
+    "clock_speed_mhz": 200
+  },
+  "specifications": {
+    "clock_frequency_ghz": 1.0,
+    "peak_gops": 2048,
+    "power_mw": 650.0,
+    "area_mm2": 1.58,
+    "technology_nm": 28,
+    "gops_per_watt": 3150.8
+  }
+}
