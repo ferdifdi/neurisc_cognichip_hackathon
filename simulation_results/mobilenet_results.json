@@ -1,0 +1,53 @@
+{
+  "testbench": "tb_mobilenet_efficiency",
+  "status": "PASS",
+  "total_tests": 13,
+  "total_errors": 0,
+  "array_configuration": {
+    "size": "32x32",
+    "mac_units": 1024,
+    "measured_cycles_per_tile": 96
+  },
+  "mobilenet_network": {
+    "input_resolution": "112x112x3",
+    "architecture": "MobileNet-inspired edge classifier",
+    "block1_channels": 32,
+    "block2_channels": 64,
+    "num_classes": 10
+  },
+  "mobilenet_performance": {
+    "total_mac_operations": 30846336,
+    "dw1_macs": 338688,
+    "pw1_macs": 1204224,
+    "dw2_macs": 3612672,
+    "pw2_macs": 25690112,
+    "fc_macs": 640,
+    "total_cycles": 45138,
+    "dw1_cycles": 330,
+    "pw1_cycles": 1152,
+    "dw2_cycles": 3528,
+    "pw2_cycles": 2304,
+    "fc_cycles": 192,
+    "activation_cycles": 37632,
+    "inference_latency_ns": 45138,
+    "inference_latency_us": 45.138,
+    "throughput_inferences_per_sec": 22154,
+    "energy_per_inference_nj": 29339,
+    "energy_per_inference_uj": 29.339,
+    "speedup_vs_arm_cortex_m7": "283x"
+  },
+  "arm_cortex_m7_baseline": {
+    "inference_time_ms": 12.80,
+    "energy_per_inference_uj": 576.0,
+    "throughput_inferences_per_sec": 78,
+    "clock_speed_mhz": 200
+  },
+  "specifications": {
+    "clock_frequency_ghz": 1.0,
+    "peak_gops": 2048,
+    "power_mw": 650.0,
+    "area_mm2": 1.58,
+    "technology_nm": 28,
+    "gops_per_watt": 3150.8
+  }
+}

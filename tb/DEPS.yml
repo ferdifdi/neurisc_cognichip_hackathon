@@ -38,3 +38,21 @@ test_neurisc_soc_comprehensive:
   top: tb_neurisc_soc_comprehensive
   defines:
     UVM_NO_DPI: 1
+
+# MNIST Efficiency Test (126x speedup proof)
+test_mnist_efficiency:
+  deps:
+    - ../rtl/mac_unit.sv
+    - ../rtl/systolic_array.sv
+    - ../rtl/activation_unit.sv
+    - tb_mnist_efficiency.sv
+  top: tb_mnist_efficiency
+
+# MobileNet-Style Efficiency Test (126x+ speedup proof)
+test_mobilenet_efficiency:
+  deps:
+    - ../rtl/mac_unit.sv
+    - ../rtl/systolic_array.sv
+    - ../rtl/activation_unit.sv
+    - tb_mobilenet_efficiency.sv
+  top: tb_mobilenet_efficiency
